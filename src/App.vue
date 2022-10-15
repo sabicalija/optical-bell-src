@@ -1,6 +1,8 @@
 <template>
-  <button @click="handleConnect">Connect</button>
-  <InputDeviceSelector @select="handleSelect" />
+  <div class="input">
+    <InputDeviceSelector @select="handleSelect" />
+    <button @click="handleConnect">Connect</button>
+  </div>
   <Oscilloscope v-if="microphone && audioCtx" :input="microphone" :ctx="audioCtx" />
 </template>
 
@@ -43,5 +45,8 @@ function setInputDevice(id) {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+
+.input {
 }
 </style>

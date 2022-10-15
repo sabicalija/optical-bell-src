@@ -51,4 +51,8 @@ function draw() {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+canvas {
+  width: 80%;
+}
+</style>
