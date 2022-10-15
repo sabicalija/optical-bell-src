@@ -6,5 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Optical Bell</title>
   </head>
-  <body></body>
+  <body>
+    <script>
+      document.addEventListener("DOMContentLoaded", init);
+
+      function init() {
+        console.log(navigator.mediaDevices.getSupportedConstraints());
+        navigator.mediaDevices.enumerateDevices().then((info) => {
+          console.log("Info:", info);
+          document.getElementById("info").appendChild(createInfo(info));
+        });
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+          console.log("Stream:", stream);
+        });
+      }
+    </script>
+  </body>
 </html>
