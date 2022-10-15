@@ -1,16 +1,37 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <button @click="handleConnect">Connect</button>
+  <InputDeviceSelector @select="handleSelect" />
+  <Oscilloscope v-if="microphone && audioCtx" :input="microphone" :ctx="audioCtx" />
 </template>
 
-<script>
-import HelloWorld from './components/HelloWorld.vue'
+<script setup>
+import { ref } from "vue";
 
-export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  }
+import InputDeviceSelector from "./components/InputDeviceSelector.vue";
+import Oscilloscope from "./components/Oscilloscope.vue";
+
+const audioCtx = ref();
+const microphone = ref();
+
+function handleSelect(id) {
+  console.log(`Device ${id} selected`);
+  setInputDevice(id);
+}
+
+function handleConnect() {
+  audioCtx.value = new AudioContext();
+  setInputDevice("");
+}
+
+function setInputDevice(id) {
+  navigator.mediaDevices
+    .getUserMedia({
+      audio: true,
+      deviceId: { exact: id },
+    })
+    .then((stream) => {
+      microphone.value = audioCtx.value.createMediaStreamSource(stream);
+    });
 }
 </script>
 
