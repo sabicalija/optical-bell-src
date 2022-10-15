@@ -1,8 +1,9 @@
 <template>
-  <canvas ref="oscilloscope"></canvas>
+  <canvas id="oscilloscope" ref="oscilloscope" width="1000" height="600"></canvas>
 </template>
 
 <script setup>
+import { createForLoopParams } from "@vue/compiler-core";
 import { ref, toRefs, onMounted } from "vue";
 const oscilloscope = ref(null);
 
@@ -18,13 +19,14 @@ analyser.fftSize = 2048;
 input.value.connect(analyser);
 const length = analyser.frequencyBinCount;
 const buffer = new Uint8Array(length);
+let previousTimestamp = 0;
 analyser.getByteTimeDomainData(buffer);
 
 onMounted(() => {
   draw();
 });
 
-function draw() {
+function draw(timestamp) {
   if (!oscilloscope.value) return;
   requestAnimationFrame(draw);
   const context = oscilloscope.value.getContext("2d");
@@ -48,11 +50,19 @@ function draw() {
   }
   context.lineTo(oscilloscope.value.width, oscilloscope.value.height / 2);
   context.stroke();
+  context.font = "1.5rem serif";
+  context.fillStyle = "black";
+  context.fillText(
+    `${Number(1000 / (timestamp - previousTimestamp)).toFixed(0)} FPS`,
+    oscilloscope.value.width * 0.9,
+    oscilloscope.value.height * 0.075
+  );
+  previousTimestamp = timestamp;
 }
 </script>
 
 <style scoped>
-canvas {
+#oscilloscope {
   width: 80%;
 }
 </style>
