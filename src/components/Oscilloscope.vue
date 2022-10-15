@@ -1,11 +1,19 @@
 <template>
   <canvas id="oscilloscope" ref="oscilloscope" width="1000" height="600"></canvas>
+  <div class="controls">
+    <select v-model="style">
+      <option v-for="style of styles" :value="style" :key="style">{{ style }}</option>
+    </select>
+  </div>
 </template>
 
 <script setup>
 import { createForLoopParams } from "@vue/compiler-core";
 import { ref, toRefs, onMounted } from "vue";
+
 const oscilloscope = ref(null);
+const styles = ["Time Domain", "Frequency Domain"];
+const style = ref("Time Domain");
 
 const props = defineProps({
   input: { type: MediaStreamAudioSourceNode, default: null },
@@ -31,9 +39,23 @@ function draw(timestamp) {
   if (!oscilloscope.value) return;
   requestAnimationFrame(draw);
   const context = oscilloscope.value.getContext("2d");
-  analyser.getByteTimeDomainData(buffer);
+
   context.fillStyle = "rgb(200, 200, 200)";
   context.fillRect(0, 0, oscilloscope.value.width, oscilloscope.value.height);
+
+  if (style.value === "Time Domain") {
+    drawTimeDomain(context);
+  } else if (style.value === "Frequency Domain") {
+    drawFrequencyDomain(context);
+  }
+
+  drawRecorderState(context);
+  drawFPSCounter(context, Number(1000 / (timestamp - previousTimestamp)).toFixed(0));
+  previousTimestamp = timestamp;
+}
+
+function drawTimeDomain(context) {
+  analyser.getByteTimeDomainData(buffer);
   context.lineWidth = 2;
   context.strokeStyle = "rgb(0, 0, 0)";
   context.beginPath();
@@ -51,6 +73,21 @@ function draw(timestamp) {
   }
   context.lineTo(oscilloscope.value.width, oscilloscope.value.height / 2);
   context.stroke();
+}
+
+function drawFrequencyDomain(context) {
+  analyser.getByteFrequencyData(buffer);
+  const barwidth = (oscilloscope.value.width / length) * 2.5;
+  let x = 0;
+  for (let i = 0; i < length; i++) {
+    const barheight = -buffer[i];
+    context.fillStyle = "rgb(" + (barheight + 100) + ", 50, 50)";
+    context.fillRect(x, oscilloscope.value.height / 2, barwidth, barheight / 2);
+    x += barwidth + 1;
+  }
+}
+
+function drawRecorderState(context) {
   context.beginPath();
   context.fillStyle = state.value === "recording" ? "red" : "gray";
   context.arc(oscilloscope.value.width * 0.035, oscilloscope.value.height * 0.075 - 7, 8, 0, 2 * Math.PI);
@@ -58,13 +95,11 @@ function draw(timestamp) {
   context.font = "1.5rem serif";
   context.fillStyle = state.value === "recording" ? "black" : "gray";
   context.fillText("REC", oscilloscope.value.width * 0.05, oscilloscope.value.height * 0.075);
+}
+
+function drawFPSCounter(context, fps) {
   context.fillStyle = "black";
-  context.fillText(
-    `${Number(1000 / (timestamp - previousTimestamp)).toFixed(0)} FPS`,
-    oscilloscope.value.width * 0.9,
-    oscilloscope.value.height * 0.075
-  );
-  previousTimestamp = timestamp;
+  context.fillText(`${fps} FPS`, oscilloscope.value.width * 0.9, oscilloscope.value.height * 0.075);
 }
 </script>
 
