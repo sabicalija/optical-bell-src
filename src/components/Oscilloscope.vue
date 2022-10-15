@@ -10,9 +10,10 @@ const oscilloscope = ref(null);
 const props = defineProps({
   input: { type: MediaStreamAudioSourceNode, default: null },
   ctx: { type: AudioContext, default: null },
+  state: { type: String, default: "inactive" },
 });
 
-const { ctx, input } = toRefs(props);
+const { ctx, input, state } = toRefs(props);
 
 const analyser = ctx.value.createAnalyser();
 analyser.fftSize = 2048;
@@ -50,7 +51,13 @@ function draw(timestamp) {
   }
   context.lineTo(oscilloscope.value.width, oscilloscope.value.height / 2);
   context.stroke();
+  context.beginPath();
+  context.fillStyle = state.value === "recording" ? "red" : "gray";
+  context.arc(oscilloscope.value.width * 0.035, oscilloscope.value.height * 0.075 - 7, 8, 0, 2 * Math.PI);
+  context.fill();
   context.font = "1.5rem serif";
+  context.fillStyle = state.value === "recording" ? "black" : "gray";
+  context.fillText("REC", oscilloscope.value.width * 0.05, oscilloscope.value.height * 0.075);
   context.fillStyle = "black";
   context.fillText(
     `${Number(1000 / (timestamp - previousTimestamp)).toFixed(0)} FPS`,
