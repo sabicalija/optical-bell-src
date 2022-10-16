@@ -34,7 +34,15 @@ function handleSelect(id) {
 function handleConnect() {
   if (!audioCtx.value) {
     audioCtx.value = new AudioContext();
-    setInputDevice(deviceId.value);
+    // FIXME
+    // https://stackoverflow.com/questions/65673325/best-way-to-call-wasm-module-functions-in-audioworkletprocessor
+    // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Module#sending_a_compiled_module_to_a_worker
+    // https://developer.chrome.com/blog/audio-worklet-design-pattern/
+    audioCtx.value.audioWorklet.addModule("js/olaf.js").then(() => {
+      audioCtx.addModule("js/olaf-noise-processor.js").then(() => {
+        setInputDevice(deviceId.value);
+      });
+    });
   } else {
     audioCtx.value.close();
     audioCtx.value = null;

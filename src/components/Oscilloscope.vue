@@ -8,11 +8,10 @@
 </template>
 
 <script setup>
-import { createForLoopParams } from "@vue/compiler-core";
-import { ref, toRefs, onMounted } from "vue";
+import { ref, toRefs, onMounted, onBeforeUnmount } from "vue";
 
 const oscilloscope = ref(null);
-const styles = ["Time Domain", "Frequency Domain"];
+const styles = ["Time Domain", "Frequency Domain", "OLAF"];
 const style = ref("Time Domain");
 
 const props = defineProps({
@@ -23,18 +22,23 @@ const props = defineProps({
 
 const { ctx, input, state } = toRefs(props);
 
-const analyser = ctx.value.createAnalyser();
-analyser.fftSize = 2048;
-input.value.connect(analyser);
-const length = analyser.frequencyBinCount;
-const buffer = new Uint8Array(length);
-let previousTimestamp = 0;
-analyser.getByteTimeDomainData(buffer);
-
 onMounted(() => {
   draw();
 });
 
+onBeforeUnmount(() => {
+  disconnect();
+});
+
+function disconnect() {
+  input.value.disconnect(analyser);
+}
+
+let analyser,
+  length,
+  buffer,
+  previousTimestamp = 0,
+  previousStyle = "";
 function draw(timestamp) {
   if (!oscilloscope.value) return;
   requestAnimationFrame(draw);
@@ -43,18 +47,35 @@ function draw(timestamp) {
   context.fillStyle = "rgb(200, 200, 200)";
   context.fillRect(0, 0, oscilloscope.value.width, oscilloscope.value.height);
 
+  if (style.value !== previousStyle) {
+    input.value.disconnect();
+    if (style.value === "Time Domain" || style.value === "Frequency Domain") {
+      analyser = ctx.value.createAnalyser();
+      analyser.fftSize = 2048;
+      input.value.connect(analyser);
+      length = analyser.frequencyBinCount;
+      buffer = new Uint8Array(length);
+    } else if (style.value === "OLAF") {
+      analyser = new AudioWorkletNode(ctx.value, "olaf-noise-processor");
+      input.value.connect(analyser);
+    }
+  }
+
   if (style.value === "Time Domain") {
-    drawTimeDomain(context);
+    drawTimeDomain(context, analyser, buffer, length);
   } else if (style.value === "Frequency Domain") {
-    drawFrequencyDomain(context);
+    drawFrequencyDomain(context, analyser, buffer, length);
+  } else if (style.value === "OLAF") {
+    drawFrequencyDomainWithOlaf(context, analyser, buffer, length);
   }
 
   drawRecorderState(context);
   drawFPSCounter(context, Number(1000 / (timestamp - previousTimestamp)).toFixed(0));
   previousTimestamp = timestamp;
+  previousStyle = style.value;
 }
 
-function drawTimeDomain(context) {
+function drawTimeDomain(context, analyser, buffer, length) {
   analyser.getByteTimeDomainData(buffer);
   context.lineWidth = 2;
   context.strokeStyle = "rgb(0, 0, 0)";
@@ -75,7 +96,7 @@ function drawTimeDomain(context) {
   context.stroke();
 }
 
-function drawFrequencyDomain(context) {
+function drawFrequencyDomain(context, analyser, buffer, length) {
   analyser.getByteFrequencyData(buffer);
   const barwidth = (oscilloscope.value.width / length) * 2.5;
   let x = 0;
@@ -85,6 +106,11 @@ function drawFrequencyDomain(context) {
     context.fillRect(x, oscilloscope.value.height / 2, barwidth, barheight / 2);
     x += barwidth + 1;
   }
+}
+
+function drawFrequencyDomainWithOlaf(context, analyser, buffer, length) {
+  analyser.getByteFrequencyData(buffer);
+  console.log("DUMMY", buffer);
 }
 
 function drawRecorderState(context) {
