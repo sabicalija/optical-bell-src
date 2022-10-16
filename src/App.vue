@@ -1,7 +1,7 @@
 <template>
   <div>
     <InputDeviceSelector @select="handleSelect" />
-    <button @click="handleConnect">Connect</button>
+    <button @click="handleConnect">{{ microphone ? "Disconnect" : "Connect" }}</button>
     <button @click="handleStart">Start</button>
     <button @click="handleStop">Stop</button>
   </div>
@@ -32,8 +32,14 @@ function handleSelect(id) {
 }
 
 function handleConnect() {
-  audioCtx.value = new AudioContext();
-  setInputDevice(deviceId.value);
+  if (!audioCtx.value) {
+    audioCtx.value = new AudioContext();
+    setInputDevice(deviceId.value);
+  } else {
+    audioCtx.value.close();
+    audioCtx.value = null;
+    microphone.value = null;
+  }
 }
 
 function handleStart() {
